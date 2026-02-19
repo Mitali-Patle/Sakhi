@@ -1,0 +1,170 @@
+// backend/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // directUrl is needed if you use Supabase's connection pooler (port 6543)
+  // for migrations. If using the direct connection (port 5432), remove directUrl.
+  // directUrl = env("DIRECT_URL")
+}
+
+enum MeetingFrequency {
+  WEEKLY
+  FORTNIGHTLY
+  MONTHLY
+}
+
+enum Language {
+  TAMIL
+  HINDI
+  TELUGU
+  ENGLISH
+}
+
+enum ScoreConfidence {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ScoreBand {
+  EXCELLENT
+  GOOD
+  FAIR
+  NEEDS_IMPROVEMENT
+}
+
+enum TransactionType {
+  CONTRIBUTION
+  LOAN_REPAYMENT
+  LOAN_DISBURSEMENT
+}
+
+enum LoanPurpose {
+  AGRICULTURE
+  BUSINESS
+  EDUCATION
+  MEDICAL
+  HOME_REPAIR
+  FAMILY_FUNCTION
+  OTHER
+}
+
+enum LoanStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  DISBURSED
+}
+
+model SHGGroup {
+  id                  String           @id @default(cuid())
+  groupName           String
+  registrationNumber  String?
+  village             String
+  district            String
+  state               String
+  bankName            String
+  meetingFrequency    MeetingFrequency
+  dateFormed          DateTime
+  corpusAmount        Float            @default(0)
+  loanCyclesCompleted Int              @default(0)
+  leaderPhone         String           @unique
+  leaderName          String
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  members             Member[]
+  meetings            Meeting[]
+}
+
+model Member {
+  id                    String              @id @default(cuid())
+  groupId               String
+  fullName              String
+  phoneNumber           String              @unique
+  language              Language            @default(TAMIL)
+  dateJoined            DateTime            @default(now())
+  tenureMonths          Int                 @default(0)
+  loansCompleted        Int                 @default(0)
+  totalContributed      Float               @default(0)
+  repaymentOnTime       Boolean             @default(true)
+  outstandingLoanAmount Float               @default(0)
+  hasBankAccount        Boolean             @default(false)
+  hasDaughterUnder10    Boolean             @default(false)
+  creditScore           Float               @default(50)
+  scoreConfidence       ScoreConfidence     @default(LOW)
+  scoreBand             ScoreBand           @default(FAIR)
+  conversationState     String              @default("IDLE")
+  conversationContext   Json                @default("{}")
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  group                 SHGGroup            @relation(fields: [groupId], references: [id])
+  transactions          Transaction[]
+  meetingAttendances    MeetingAttendance[]
+  loanRequests          LoanRequest[]
+  schemeEligibilities   SchemeEligibility[]
+}
+
+model Transaction {
+  id               String          @id @default(cuid())
+  memberId         String
+  groupId          String
+  type             TransactionType
+  amount           Float
+  dueDate          DateTime?
+  actualDate       DateTime        @default(now())
+  daysLate         Int             @default(0)
+  verifiedByMember Boolean         @default(false)
+  notes            String?
+  createdAt        DateTime        @default(now())
+  member           Member          @relation(fields: [memberId], references: [id])
+}
+
+model LoanRequest {
+  id              String      @id @default(cuid())
+  memberId        String
+  groupId         String
+  amount          Float
+  purpose         LoanPurpose
+  repaymentMonths Int
+  status          LoanStatus  @default(PENDING)
+  requestedAt     DateTime    @default(now())
+  resolvedAt      DateTime?
+  member          Member      @relation(fields: [memberId], references: [id])
+}
+
+model Meeting {
+  id             String              @id @default(cuid())
+  groupId        String
+  meetingDate    DateTime
+  totalCollected Float               @default(0)
+  notes          String?
+  createdAt      DateTime            @default(now())
+  group          SHGGroup            @relation(fields: [groupId], references: [id])
+  attendances    MeetingAttendance[]
+}
+
+model MeetingAttendance {
+  id        String  @id @default(cuid())
+  meetingId String
+  memberId  String
+  attended  Boolean @default(false)
+  meeting   Meeting @relation(fields: [meetingId], references: [id])
+  member    Member  @relation(fields: [memberId], references: [id])
+}
+
+model SchemeEligibility {
+  id         String    @id @default(cuid())
+  memberId   String
+  schemeName String
+  isEligible Boolean
+  notified   Boolean   @default(false)
+  notifiedAt DateTime?
+  member     Member    @relation(fields: [memberId], references: [id])
+
+  @@unique([memberId, schemeName])
+}

@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Environment variables — NEVER commit these
+.env
+frontend/.env
+telegram_bot/.env
+backend/.env
+
+# Python cache
+__pycache__/
+*/__pycache__/
+
+# WhatsApp session — contains auth tokens
+.wwebjs_auth/
+.wwebjs_cache/
+
+# Prisma generated
+backend/src/generated/
+
+# Build output
+frontend/dist/
+frontend/build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
